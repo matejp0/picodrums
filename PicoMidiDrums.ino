@@ -3,19 +3,23 @@
 #include <MIDI.h>
 
 #define PIN 16
-#define NOTE 62
 #define NUM 4
 
 bool old[NUM] = {HIGH};
 Adafruit_USBD_MIDI usb_midi;
 MIDI_CREATE_INSTANCE(Adafruit_USBD_MIDI, usb_midi, MIDI);
 
+volatile int note = 60;
 void setup()
 {
   pinMode(LED_BUILTIN, OUTPUT);
   for(int i = 0; i<NUM; i++){
     pinMode((PIN + i), INPUT_PULLUP);
   }
+  pinMode(14, INPUT_PULLUP);
+  pinMode(15, INPUT_PULLUP);
+  attachInterrupt(14, upOctave, FALLING);
+  attachInterrupt(15, downOctave, FALLING);
   
   // usb_midi.setStringDescriptor("TinyUSB MIDI");
   MIDI.begin(MIDI_CHANNEL_OMNI);
@@ -36,14 +40,28 @@ void loop()
     if(old[i] != nev)
     {
       if(nev == LOW){
-        MIDI.sendNoteOn(NOTE + i, 127, 1+i);
+        MIDI.sendNoteOn(note + i, 127, 1+i);
         digitalWrite(LED_BUILTIN, HIGH);
       }
       else{
-        MIDI.sendNoteOff(NOTE + i, 0, 1+i);
+        MIDI.sendNoteOff(note + i, 0, 1+i);
         digitalWrite(LED_BUILTIN, LOW);
       }
       old[i] = nev;
     }
+  }
+}
+void upOctave(){
+  if(note<=(127-12)){
+    for(int i = 0; i<NUM; i++)
+      MIDI.sendNoteOff(note + i, 0, 1+i);
+    note += 12;
+  }
+}
+void downOctave(){
+  if(note>=(12)){
+    for(int i = 0; i<NUM; i++)
+      MIDI.sendNoteOff(note + i, 0, 1+i);
+    note -= 12;
   }
 }
