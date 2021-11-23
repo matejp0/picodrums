@@ -2,32 +2,48 @@
 #include <Adafruit_TinyUSB.h>
 #include <MIDI.h>
 
-#define SW1 16
-#define SW2 17
+#define PIN 16
+#define NOTE 62
+#define NUM 4
 
+bool old[NUM] = {HIGH};
 Adafruit_USBD_MIDI usb_midi;
 MIDI_CREATE_INSTANCE(Adafruit_USBD_MIDI, usb_midi, MIDI);
 
 void setup()
 {
   pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(SW1, INPUT);
-  pinMode(SW2, INPUT);
+  for(int i = 0; i<NUM; i++){
+    pinMode((PIN + i), INPUT_PULLUP);
+  }
   
-  usb_midi.setStringDescriptor("TinyUSB MIDI");
+  // usb_midi.setStringDescriptor("TinyUSB MIDI");
   MIDI.begin(MIDI_CHANNEL_OMNI);
+    
   Serial.begin(115200);
 
-  while( !USBDevice.mounted() ) delay(1); // wait until device mounted
+  while(!USBDevice.mounted()) delay(1);
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(1000);
+  digitalWrite(LED_BUILTIN, LOW);
 }
 
 void loop()
 {
-  if(digitalRead(SW1) == HIGH)  MIDI.sendNoteOn(69, 127, 1);
-  else if(digitalRead(SW1) == LOW)  MIDI.sendNoteOff(69, 0, 1);
-
-  if(digitalRead(SW2) == HIGH)  MIDI.sendNoteOn(76, 127, 2);
-  else if (digitalRead(SW2) == LOW) MIDI.sendNoteOff(76, 0, 2);
-
-  digitalWrite(LED_BUILTIN, digitalRead(SW1)); // blink with the built-in LED when SW1 is pressed
+  for(int i = 0; i<NUM; i++)
+  {
+    bool nev = digitalRead(PIN + i);
+    if(old[i] != nev)
+    {
+      if(nev == LOW){
+        MIDI.sendNoteOn(NOTE + i, 127, 1+i);
+        digitalWrite(LED_BUILTIN, HIGH);
+      }
+      else{
+        MIDI.sendNoteOff(NOTE + i, 0, 1+i);
+        digitalWrite(LED_BUILTIN, LOW);
+      }
+      old[i] = nev;
+    }
+  }
 }
