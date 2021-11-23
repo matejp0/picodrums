@@ -9,7 +9,7 @@ bool old[NUM] = {HIGH};
 Adafruit_USBD_MIDI usb_midi;
 MIDI_CREATE_INSTANCE(Adafruit_USBD_MIDI, usb_midi, MIDI);
 
-volatile int note = 62;
+volatile int note = 60;
 void setup()
 {
   pinMode(LED_BUILTIN, OUTPUT);
@@ -52,12 +52,16 @@ void loop()
   }
 }
 void upOctave(){
-  for(int i = 0; i<NUM; i++)
-    MIDI.sendNoteOff(note + i, 0, 1+i);
-  note += 12;
+  if(note<=(127-12)){
+    for(int i = 0; i<NUM; i++)
+      MIDI.sendNoteOff(note + i, 0, 1+i);
+    note += 12;
+  }
 }
 void downOctave(){
-  for(int i = 0; i<NUM; i++)
-    MIDI.sendNoteOff(note + i, 0, 1+i);
-  note -= 12;
+  if(note>=(12)){
+    for(int i = 0; i<NUM; i++)
+      MIDI.sendNoteOff(note + i, 0, 1+i);
+    note -= 12;
+  }
 }
