@@ -4,6 +4,7 @@
 
 #define PIN 16
 #define NUM 4
+#define STEP 12
 
 bool old[NUM] = {HIGH};
 Adafruit_USBD_MIDI usb_midi;
@@ -52,16 +53,12 @@ void loop()
   }
 }
 void upOctave(){
-  if(note<=(127-12)){
-    for(int i = 0; i<NUM; i++)
-      MIDI.sendNoteOff(note + i, 0, 1+i);
-    note += 12;
-  }
+  for(int i = 0; i<NUM; i++)
+   MIDI.sendNoteOff(note + i, 0, 1+i);
+  note += (note<=(127-STEP)) ? STEP : 0;
 }
 void downOctave(){
-  if(note>=(12)){
-    for(int i = 0; i<NUM; i++)
-      MIDI.sendNoteOff(note + i, 0, 1+i);
-    note -= 12;
-  }
+  for(int i = 0; i<NUM; i++)
+    MIDI.sendNoteOff(note + i, 0, 1+i);
+  note -= (note>=(STEP)) ? STEP : 0;
 }
