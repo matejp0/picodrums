@@ -12,9 +12,9 @@ MIDI_CREATE_INSTANCE(Adafruit_USBD_MIDI, usb_midi, MIDI);
 volatile int note = 60; // middle C
 
 float calibration;
-
+float f;
 int sensorValue = 0;
-
+int maxVal = 2400;
 void setup()
 {
   pinMode(LED_BUILTIN, OUTPUT);
@@ -25,8 +25,8 @@ void setup()
   attachInterrupt(14, downOctave, FALLING);
   attachInterrupt(15, upOctave, FALLING);
 
-  calibration = analogRead(SENSORPIN) - 100;
-  
+  calibration = analogRead(SENSORPIN);
+  f = ((maxVal-calibration)/127);
   MIDI.begin(MIDI_CHANNEL_OMNI);
     
   Serial.begin(115200);
@@ -40,18 +40,18 @@ void setup()
 void loop()
 {
   sensorValue = analogRead(SENSORPIN);
-  
-  if(sensorValue >= calibration+50)
+  if(sensorValue >= calibration + 50)
   {
-    MIDI.sendNoteOff(note, 0, 1);
-    digitalWrite(LED_BUILTIN, LOW);
-  }
-  
-  else
-  {
-    MIDI.sendNoteOn(note, 127, 1);
+    MIDI.sendNoteOn(note, (sensorValue/f), 1);
     digitalWrite(LED_BUILTIN, HIGH);
   }
+  
+  else if(sensorValue <= calibration - 10)
+  {
+     MIDI.sendNoteOff(note, 0, 1);
+    digitalWrite(LED_BUILTIN, LOW);
+  }
+ 
   
 }
 void upOctave(){
@@ -66,7 +66,6 @@ void downOctave(){
 }
 
 /*  TODO:
- *  float f;
- *  f = calibration/127;
+ *  
  *  abs(ceil(sensorValue/f)-127)
  */
