@@ -5,53 +5,67 @@
 
 #define SENSORPIN A2
 #define STEP 12
+#define CALBUTTON 16
 
 Adafruit_USBD_MIDI usb_midi;
 MIDI_CREATE_INSTANCE(Adafruit_USBD_MIDI, usb_midi, MIDI);
 
 volatile int note = 60; // middle C
 
-float calibration;
+int lowestValue;
+int highestValue;
 float f;
 int sensorValue = 0;
-int maxVal = 2400;
+bool notestate = false;
 void setup()
 {
+    
+  MIDI.begin(MIDI_CHANNEL_OMNI);
+  // Serial.begin(115200);
+  
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, HIGH);
   
-  pinMode(14, INPUT_PULLUP);
-  pinMode(15, INPUT_PULLUP);
+  pinMode(14, INPUT_PULLUP);  // octave changing
+  pinMode(15, INPUT_PULLUP);  // buttons
   attachInterrupt(14, downOctave, FALLING);
   attachInterrupt(15, upOctave, FALLING);
 
-  calibration = analogRead(SENSORPIN);
-  f = ((maxVal-calibration)/127);
-  MIDI.begin(MIDI_CHANNEL_OMNI);
-    
-  Serial.begin(115200);
+  pinMode(CALBUTTON, INPUT_PULLUP); // highestValue button
+
+  lowestValue = analogRead(SENSORPIN);
+
+  while(digitalRead(CALBUTTON) == 1) delay(1);
+  if(digitalRead(CALBUTTON) == 0) highestValue = analogRead(SENSORPIN);
   
+  f = ((highestValue-lowestValue)/127);
+
   while(!USBDevice.mounted()) delay(1);
-  
   digitalWrite(LED_BUILTIN, LOW);
       
 }
-
+int getMIDIVal(int pin){
+  int a = (analogRead(pin)-lowestValue)/f;
+  return ((a>127) ? 127 : a);
+}
 void loop()
 {
   sensorValue = analogRead(SENSORPIN);
-  if(sensorValue >= calibration + 50)
+  if(sensorValue >= lowestValue + 50)
   {
-    MIDI.sendNoteOn(note, (sensorValue/f), 1);
+    if(!notestate)  MIDI.sendNoteOn(note, getMIDIVal(SENSORPIN), 1);
+    else  MIDI.sendAfterTouch(note, getMIDIVal(SENSORPIN), 1);
+    
     digitalWrite(LED_BUILTIN, HIGH);
+    notestate = true;
   }
   
-  else if(sensorValue <= calibration - 10)
-  {
-     MIDI.sendNoteOff(note, 0, 1);
+  else if(sensorValue <= lowestValue - 30){
+    MIDI.sendNoteOff(note, 0, 1);
     digitalWrite(LED_BUILTIN, LOW);
+    notestate = false;
+    
   }
- 
   
 }
 void upOctave(){
